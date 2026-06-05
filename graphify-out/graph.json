@@ -575,144 +575,144 @@
       "file_type": "rationale",
       "source_file": "D:\\AMTCE\\Telegram_Video_Uploader\\sales_bot.py",
       "source_location": "L660",
-      "id": "sales_bot_rationale_660",
       "community": 0,
-      "norm_label": "handles incoming photos (payment screenshots)."
+      "norm_label": "handles incoming photos (payment screenshots).",
+      "id": "sales_bot_rationale_660"
     },
     {
       "label": "Processes Approval/Rejection buttons pressed by admin in the Storage Group.",
       "file_type": "rationale",
       "source_file": "D:\\AMTCE\\Telegram_Video_Uploader\\sales_bot.py",
       "source_location": "L792",
-      "id": "sales_bot_rationale_792",
       "community": 0,
-      "norm_label": "processes approval/rejection buttons pressed by admin in the storage group."
+      "norm_label": "processes approval/rejection buttons pressed by admin in the storage group.",
+      "id": "sales_bot_rationale_792"
     },
     {
       "label": "Handles standard text messages sent to the Admin Bot. Only processes admin uploa",
       "file_type": "rationale",
       "source_file": "D:\\AMTCE\\Telegram_Video_Uploader\\sales_bot.py",
       "source_location": "L924",
-      "id": "sales_bot_rationale_924",
       "community": 5,
-      "norm_label": "handles standard text messages sent to the admin bot. only processes admin uploa"
+      "norm_label": "handles standard text messages sent to the admin bot. only processes admin uploa",
+      "id": "sales_bot_rationale_924"
     },
     {
       "label": "Handles standard text messages from users (inquires, negotiations) using Groq/Mi",
       "file_type": "rationale",
       "source_file": "D:\\AMTCE\\Telegram_Video_Uploader\\sales_bot.py",
       "source_location": "L1059",
-      "id": "sales_bot_rationale_1059",
       "community": 5,
-      "norm_label": "handles standard text messages from users (inquires, negotiations) using groq/mi"
+      "norm_label": "handles standard text messages from users (inquires, negotiations) using groq/mi",
+      "id": "sales_bot_rationale_1059"
     },
     {
       "label": "Routes private text messages based on whether the sender is an admin in a media",
       "file_type": "rationale",
       "source_file": "D:\\AMTCE\\Telegram_Video_Uploader\\sales_bot.py",
       "source_location": "L1085",
-      "id": "sales_bot_rationale_1085",
       "community": 5,
-      "norm_label": "routes private text messages based on whether the sender is an admin in a media"
+      "norm_label": "routes private text messages based on whether the sender is an admin in a media",
+      "id": "sales_bot_rationale_1085"
     },
     {
       "label": "Listens for manual video uploads inside the private Storage Group and auto-index",
       "file_type": "rationale",
       "source_file": "D:\\AMTCE\\Telegram_Video_Uploader\\sales_bot.py",
       "source_location": "L1094",
-      "id": "sales_bot_rationale_1094",
       "community": 5,
-      "norm_label": "listens for manual video uploads inside the private storage group and auto-index"
+      "norm_label": "listens for manual video uploads inside the private storage group and auto-index",
+      "id": "sales_bot_rationale_1094"
     },
     {
       "label": "Listens for trailer uploads in the public Trailer Group, generates AI hooks and",
       "file_type": "rationale",
       "source_file": "D:\\AMTCE\\Telegram_Video_Uploader\\sales_bot.py",
       "source_location": "L1148",
-      "id": "sales_bot_rationale_1148",
       "community": 5,
-      "norm_label": "listens for trailer uploads in the public trailer group, generates ai hooks and"
+      "norm_label": "listens for trailer uploads in the public trailer group, generates ai hooks and",
+      "id": "sales_bot_rationale_1148"
     },
     {
       "label": "Triggered when an admin uploads a document or video directly to the bot in DM.",
       "file_type": "rationale",
       "source_file": "D:\\AMTCE\\Telegram_Video_Uploader\\sales_bot.py",
       "source_location": "L1240",
-      "id": "sales_bot_rationale_1240",
       "community": 0,
-      "norm_label": "triggered when an admin uploads a document or video directly to the bot in dm."
+      "norm_label": "triggered when an admin uploads a document or video directly to the bot in dm.",
+      "id": "sales_bot_rationale_1240"
     },
     {
       "label": "Timer thread that executes fallback configuration after 30 seconds.",
       "file_type": "rationale",
       "source_file": "D:\\AMTCE\\Telegram_Video_Uploader\\sales_bot.py",
       "source_location": "L1309",
-      "id": "sales_bot_rationale_1309",
       "community": 0,
-      "norm_label": "timer thread that executes fallback configuration after 30 seconds."
+      "norm_label": "timer thread that executes fallback configuration after 30 seconds.",
+      "id": "sales_bot_rationale_1309"
     },
     {
       "label": "Default fallback routing based on media format.",
       "file_type": "rationale",
       "source_file": "D:\\AMTCE\\Telegram_Video_Uploader\\sales_bot.py",
       "source_location": "L1327",
-      "id": "sales_bot_rationale_1327",
       "community": 5,
-      "norm_label": "default fallback routing based on media format."
+      "norm_label": "default fallback routing based on media format.",
+      "id": "sales_bot_rationale_1327"
     },
     {
       "label": "Processes admin buttons clicked within the 6-second window.",
       "file_type": "rationale",
       "source_file": "D:\\AMTCE\\Telegram_Video_Uploader\\sales_bot.py",
       "source_location": "L1444",
-      "id": "sales_bot_rationale_1444",
       "community": 4,
-      "norm_label": "processes admin buttons clicked within the 6-second window."
+      "norm_label": "processes admin buttons clicked within the 6-second window.",
+      "id": "sales_bot_rationale_1444"
     },
     {
       "label": "Periodically backs up the database to Telegram every 5 hours and 45 minutes (207",
       "file_type": "rationale",
       "source_file": "D:\\AMTCE\\Telegram_Video_Uploader\\sales_bot.py",
       "source_location": "L1502",
-      "id": "sales_bot_rationale_1502",
       "community": 0,
-      "norm_label": "periodically backs up the database to telegram every 5 hours and 45 minutes (207"
+      "norm_label": "periodically backs up the database to telegram every 5 hours and 45 minutes (207",
+      "id": "sales_bot_rationale_1502"
     },
     {
       "label": "Callback run on application startup to spawn background tasks.",
       "file_type": "rationale",
       "source_file": "D:\\AMTCE\\Telegram_Video_Uploader\\sales_bot.py",
       "source_location": "L1523",
-      "id": "sales_bot_rationale_1523",
       "community": 0,
-      "norm_label": "callback run on application startup to spawn background tasks."
+      "norm_label": "callback run on application startup to spawn background tasks.",
+      "id": "sales_bot_rationale_1523"
     },
     {
       "label": "Callback run on application shutdown to save final database state.",
       "file_type": "rationale",
       "source_file": "D:\\AMTCE\\Telegram_Video_Uploader\\sales_bot.py",
       "source_location": "L1529",
-      "id": "sales_bot_rationale_1529",
       "community": 0,
-      "norm_label": "callback run on application shutdown to save final database state."
+      "norm_label": "callback run on application shutdown to save final database state.",
+      "id": "sales_bot_rationale_1529"
     },
     {
       "label": "Unified Bot Application \u2014 runs as BOT_TOKEN (8629240240).     Handles all Admin",
       "file_type": "rationale",
       "source_file": "D:\\AMTCE\\Telegram_Video_Uploader\\sales_bot.py",
       "source_location": "L1541",
-      "id": "sales_bot_rationale_1541",
       "community": 0,
-      "norm_label": "unified bot application \u2014 runs as bot_token (8629240240).     handles all admin"
+      "norm_label": "unified bot application \u2014 runs as bot_token (8629240240).     handles all admin",
+      "id": "sales_bot_rationale_1541"
     },
     {
       "label": "Initialises and runs the unified Application polling.",
       "file_type": "rationale",
       "source_file": "D:\\AMTCE\\Telegram_Video_Uploader\\sales_bot.py",
       "source_location": "L1598",
-      "id": "sales_bot_rationale_1598",
       "community": 0,
-      "norm_label": "initialises and runs the unified application polling."
+      "norm_label": "initialises and runs the unified application polling.",
+      "id": "sales_bot_rationale_1598"
     },
     {
       "label": "send_hook.py",

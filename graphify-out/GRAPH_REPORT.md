@@ -1,7 +1,7 @@
 # Graph Report - D:\AMTCE\Telegram_Video_Uploader  (2026-06-06)
 
 ## Corpus Check
-- 11 files · ~44,018 words
+- 11 files · ~50,441 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary

@@ -1,0 +1,53 @@
+name: Telegram Sales Bot 24/7
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    # Check/restart every 15 minutes. Concurrency controls ensure only one runs at a time.
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+# Ensure only one instance of the bot runs at a time to prevent polling conflicts
+concurrency:
+  group: telegram-sales-bot
+  cancel-in-progress: false
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate .env File
+        run: |
+          echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" > .env
+          echo "TELEGRAM_CUSTOMER_BOT_TOKEN=${{ secrets.TELEGRAM_CUSTOMER_BOT_TOKEN }}" >> .env
+          echo "TELEGRAM_GROUP_ID=${{ secrets.TELEGRAM_GROUP_ID }}" >> .env
+          echo "TELEGRAM_STORAGE_GROUP_ID=${{ secrets.TELEGRAM_STORAGE_GROUP_ID }}" >> .env
+          echo "ADMIN_IDS=${{ secrets.ADMIN_IDS }}" >> .env
+          echo "UPI_ID=${{ secrets.UPI_ID }}" >> .env
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> .env
+          echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" >> .env
+          echo "MISTRAL_API_KEY=${{ secrets.MISTRAL_API_KEY }}" >> .env
+          echo "FREE_PREVIEW_GROUP_ID=${{ secrets.FREE_PREVIEW_GROUP_ID }}" >> .env
+          echo "TELEGRAM_MAX_UPLOAD_MB=50" >> .env
+          # Run for 19800 seconds (5.5 hours) then exit cleanly so GitHub Actions rotates it
+          echo "RUN_TIMEOUT=19800" >> .env
+
+      - name: Start Bot Polling
+        run: |
+          python run_bot.py

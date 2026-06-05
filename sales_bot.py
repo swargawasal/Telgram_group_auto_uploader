@@ -1614,7 +1614,18 @@ async def _run_unified(app: Application):
         await updater.start_polling()
 
         try:
-            await asyncio.Event().wait()
+            # Check if there's a runtime timeout (useful for GitHub Actions)
+            timeout_env = os.getenv("RUN_TIMEOUT")
+            if timeout_env:
+                try:
+                    timeout_secs = float(timeout_env)
+                    log.info(f"⏰ RUN_TIMEOUT set: Bot will run for {timeout_secs} seconds and exit cleanly.")
+                    await asyncio.sleep(timeout_secs)
+                except Exception as e:
+                    log.error(f"Error parsing RUN_TIMEOUT '{timeout_env}': {e}")
+                    await asyncio.Event().wait()
+            else:
+                await asyncio.Event().wait()
         except (KeyboardInterrupt, SystemExit):
             pass
         finally:
