@@ -83,6 +83,7 @@ PRICE_FULL_1080    = int(os.getenv("PRICE_FULL_1080", "149"))
 
 # Group the customer must join before getting the free 720p preview
 FREE_PREVIEW_GROUP_ID = os.getenv("FREE_PREVIEW_GROUP_ID", "").strip()
+FREE_PREVIEW_GROUP_LINK = os.getenv("FREE_PREVIEW_GROUP_LINK", "").strip()
 # Convenience: admin bot base URL for direct requests to storage group
 _ADMIN_API_BASE = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
@@ -538,7 +539,19 @@ async def tier_selection_callback(update: Update, context: ContextTypes.DEFAULT_
         # Membership gate: must join the group first
         is_member = await check_group_membership(context.bot, user_id)
         if not is_member:
-            join_link = f"https://t.me/c/{str(FREE_PREVIEW_GROUP_ID).lstrip('-100')}"
+            join_link = FREE_PREVIEW_GROUP_LINK
+            if not join_link:
+                try:
+                    chat = await context.bot.get_chat(chat_id=int(FREE_PREVIEW_GROUP_ID))
+                    if chat.invite_link:
+                        join_link = chat.invite_link
+                    else:
+                        invite = await context.bot.create_chat_invite_link(chat_id=int(FREE_PREVIEW_GROUP_ID))
+                        join_link = invite.invite_link
+                except Exception as e:
+                    log.warning(f"Could not generate dynamic invite link: {e}")
+                    join_link = f"https://t.me/c/{str(FREE_PREVIEW_GROUP_ID).lstrip('-100')}"
+
             try:
                 await query.edit_message_text(
                     "🔒 <b>Join to Unlock the FREE Preview!</b>\n\n"
@@ -1256,8 +1269,8 @@ async def handle_admin_media_upload(update: Update, context: ContextTypes.DEFAUL
         
     media_type = "video" if is_video else "document"
     
-    # Pre-calculate suggested slug for timeout fallback
-    suggested_slug = suggest_next_slug(file_name, msg.caption, "store" if media_type == "document" else "trailer")
+    # Pre-calculate suggested slug
+    suggested_slug = await suggest_next_slug(file_name, msg.caption, "store" if media_type == "document" else "trailer")
         
     # Store session details
     ADMIN_MEDIA_SESSIONS[user_id] = {
@@ -1287,10 +1300,7 @@ async def handle_admin_media_upload(update: Update, context: ContextTypes.DEFAUL
     if suggested_slug:
         prompt_text += f"💡 <b>Auto-detected Slug:</b> <code>{suggested_slug}</code>\n\n"
     prompt_text += (
-        f"Select upload destination within <b>30 seconds</b>.\n"
-        f"If no option is selected, the bot automatically defaults:\n"
-        f"• 📄 Documents go to <b>Storage Group</b> (full_1080)\n"
-        f"• 🎥 Videos go to <b>Trailer Group</b> (Public)"
+        f"Please select the upload destination below:"
     )
     
     prompt = await msg.reply_text(
@@ -1300,144 +1310,10 @@ async def handle_admin_media_upload(update: Update, context: ContextTypes.DEFAUL
     )
     
     ADMIN_MEDIA_SESSIONS[user_id]["prompt_msg_id"] = prompt.message_id
-    
-    # Run 30-second timeout task
-    asyncio.create_task(run_admin_media_timeout(context, user_id, msg.message_id))
 
 
-async def run_admin_media_timeout(context: ContextTypes.DEFAULT_TYPE, admin_id: int, message_id: int):
-    """Timer thread that executes fallback configuration after 30 seconds."""
-    await asyncio.sleep(30)
-    session = ADMIN_MEDIA_SESSIONS.get(admin_id)
-    if session and session["msg_id"] == message_id and session["status"] == "pending_action":
-        session["status"] = "timeout"
-        try:
-            await context.bot.edit_message_text(
-                chat_id=admin_id,
-                message_id=session["prompt_msg_id"],
-                text="⏳ <b>30 seconds elapsed.</b> Processing automatic fallback routing...",
-                parse_mode="HTML"
-            )
-        except Exception:
-            pass
-        await execute_media_fallback(context, admin_id, session)
 
 
-async def execute_media_fallback(context: ContextTypes.DEFAULT_TYPE, admin_id: int, session: Dict[str, Any]):
-    """Default fallback routing based on media format."""
-    file_id = session["file_id"]
-    media_type = session["media_type"]
-    file_name = session["file_name"]
-    
-    slug = session.get("suggested_slug")
-    if not slug:
-        base_name = Path(file_name).stem
-        slug = "".join(c if c.isalnum() or c in "_-" else "_" for c in base_name).lower()
-        
-    if slug:
-        slug = slug.strip().lower()
-        while "__" in slug:
-            slug = slug.replace("__", "_")
-        slug = slug.strip("_")
-        
-    if not slug:
-        slug = f"auto_{int(time.time())}"
-        
-    try:
-        if media_type == "document":
-            # Fallback A: Document -> Private Storage Group as full_1080
-            caption = f"Slug: {slug}\nTier: full_1080"
-            # Since both bots are merged, we use the file_id directly to send the document fallback.
-            sent_msg = await context.bot.send_document(
-                chat_id=STORAGE_GROUP_ID,
-                document=file_id,
-                caption=caption
-            )
-            
-            from storage_manager import load_index, save_index
-            index = load_index()
-            if slug not in index:
-                index[slug] = {
-                    "caption": f"Auto Upload: {slug}",
-                    "half_720": None,
-                    "full_720": None,
-                    "full_1080": None,
-                    "timestamp": int(time.time())
-                }
-            index[slug]["full_1080"] = sent_msg.message_id
-            save_index(index)
-            
-            await context.bot.send_message(
-                chat_id=admin_id,
-                text=f"✅ <b>Auto-Fallback Applied:</b> Uploaded Document to Storage Group.\n"
-                     f"• <b>Slug:</b> <code>{slug}</code>\n"
-                     f"• <b>Tier:</b> <code>full_1080</code>\n"
-                     f"• <b>Message ID:</b> <code>{sent_msg.message_id}</code>",
-                parse_mode="HTML"
-            )
-        else:
-            # Fallback B: Video -> Public Trailer Group with Buy Button
-            slug = session.get("suggested_slug")
-            if not slug:
-                file_name_clean = Path(file_name).stem
-                # Strip common trailer/preview suffixes
-                for suffix in ["_trailer", "_preview", "_short", "_t", "-trailer", "-preview"]:
-                    if file_name_clean.lower().endswith(suffix):
-                        file_name_clean = file_name_clean[:-len(suffix)]
-                        break
-                slug = "".join(c if c.isalnum() or c in "_-" else "_" for c in file_name_clean).lower()
-                
-            if slug:
-                slug = slug.strip().lower()
-                while "__" in slug:
-                    slug = slug.replace("__", "_")
-                slug = slug.strip("_")
-                
-            if not slug or slug.startswith("video_"):
-                slug = f"trailer_{int(time.time())}"
-                
-            bot_username = await get_customer_bot_username(context.bot)
-            buy_link = f"https://t.me/{bot_username}?start={slug}"
-            
-            reply_markup = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🛒 Unlock Quality Tiers (FREE / ₹59 / ₹149)", url=buy_link)]
-            ])
-            
-            caption = await generate_tempting_hook(slug)
-            
-            sent_msg = await context.bot.send_video(
-                chat_id=TRAILER_GROUP_ID,
-                video=file_id,
-                caption=caption,
-                reply_markup=reply_markup,
-                parse_mode="HTML"
-            )
-            
-            from storage_manager import load_index, save_index
-            index = load_index()
-            if slug not in index:
-                index[slug] = {
-                    "caption": f"Trailer Video: {slug}",
-                    "half_720": None,
-                    "full_720": None,
-                    "full_1080": None,
-                    "timestamp": int(time.time())
-                }
-                save_index(index)
-                
-            await context.bot.send_message(
-                chat_id=admin_id,
-                text=f"✅ <b>Auto-Fallback Applied:</b> Posted Video to Trailer Group.\n"
-                     f"• <b>Slug:</b> <code>{slug}</code>\n"
-                     f"• <b>Trailer message ID:</b> <code>{sent_msg.message_id}</code>\n\n"
-                     f"<i>Note: Remember to upload/index storage tiers for this slug!</i>",
-                parse_mode="HTML"
-            )
-    except Exception as e:
-        log.error(f"Fallback routing failed: {e}")
-        await context.bot.send_message(chat_id=admin_id, text=f"❌ Fallback processing failed: {e}")
-        
-    ADMIN_MEDIA_SESSIONS.pop(admin_id, None)
 
 
 async def admin_media_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1464,7 +1340,7 @@ async def admin_media_callback_handler(update: Update, context: ContextTypes.DEF
         session["status"] = "waiting_slug_tier"
         caption = session.get("caption") or ""
         file_name = session["file_name"]
-        suggested_slug = suggest_next_slug(file_name, caption, "store")
+        suggested_slug = await suggest_next_slug(file_name, caption, "store")
         
         text = (
             "📥 <b>Upload to Storage selected.</b>\n\n"
@@ -1482,7 +1358,7 @@ async def admin_media_callback_handler(update: Update, context: ContextTypes.DEF
         session["status"] = "waiting_slug_trailer"
         caption = session.get("caption") or ""
         file_name = session["file_name"]
-        suggested_slug = suggest_next_slug(file_name, caption, "trailer")
+        suggested_slug = await suggest_next_slug(file_name, caption, "trailer")
         
         text = (
             "📺 <b>Post as Trailer selected.</b>\n\n"

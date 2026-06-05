@@ -304,60 +304,91 @@ def extract_base_actress_name(file_name: str, caption: str) -> str:
     return clean
 
 
-def suggest_next_slug(file_name: str, caption: str, upload_type: str = "store") -> str:
+async def suggest_next_slug(file_name: str, caption: str, upload_type: str = "store") -> str:
     """
-    Checks the index database to recommend a slug.
-    - If there is an existing slug for the actress that is incomplete (missing the corresponding side),
-      it recommends that existing slug to establish the connection.
-    - Otherwise, it recommends the next unused numbered slug (e.g., joslyn_james_02).
+    Intelligently suggests the next slug using Gemini to analyze the filename, caption,
+    and existing database slugs, ensuring continuity and correct numbering.
     """
     from storage_manager import load_index
-    base_name = extract_base_actress_name(file_name, caption)
-    
     try:
         index = load_index()
     except Exception:
         index = {}
-        
-    # Find all existing slugs that match the actress base name
-    matching_slugs = []
-    for slug in index.keys():
-        slug_base = extract_base_actress_name("", slug)
-        if slug_base == base_name:
-            matching_slugs.append(slug)
-            
-    # Sort matching slugs (put base name first, then numbered ones)
-    matching_slugs.sort(key=lambda s: (len(s), s))
+
+    existing_slugs = list(index.keys())
     
-    # Analyze matches for incomplete connections
+    # Pre-calculate fallback using regex/base extraction
+    base_name = extract_base_actress_name(file_name, caption)
+    fallback_slug = f"{base_name}_01"
+    
+    # Find matching slugs for this base name
+    matching_slugs = []
+    for s in existing_slugs:
+        if extract_base_actress_name("", s) == base_name:
+            matching_slugs.append(s)
+            
+    # Sort and check for incomplete matches
+    matching_slugs.sort(key=lambda s: (len(s), s))
+    incomplete_fallback = None
     for slug in matching_slugs:
         entry = index[slug]
         has_trailer = entry.get("half_720") is not None or "Trailer" in entry.get("caption", "")
         has_storage = entry.get("full_1080") is not None or entry.get("half_1080") is not None
-        
         if upload_type == "store" and not has_storage:
-            # We are uploading to Storage, and this slug has no storage file.
-            # Recommend this slug to connect the storage side!
-            log.info(f"Suggesting existing incomplete slug '{slug}' to connect Storage side.")
-            return slug
-            
+            incomplete_fallback = slug
+            break
         if upload_type == "trailer" and not has_trailer:
-            # We are posting a Trailer, and this slug has no trailer file.
-            # Recommend this slug to connect the Trailer side!
-            log.info(f"Suggesting existing incomplete slug '{slug}' to connect Trailer side.")
-            return slug
-
-    # If no incomplete slug is found, generate the next unused numbered slug
-    # If neither base_name nor base_name_01 is in the index, suggest base_name_01
-    if base_name not in index and f"{base_name}_01" not in index:
-        return f"{base_name}_01"
-        
-    for i in range(1, 100):
-        candidate = f"{base_name}_{i:02d}"
-        if candidate not in index:
-            return candidate
+            incomplete_fallback = slug
+            break
             
-    return f"{base_name}_{int(time.time())}"
+    if incomplete_fallback:
+        fallback_slug = incomplete_fallback
+    else:
+        # Check next number
+        for i in range(1, 100):
+            candidate = f"{base_name}_{i:02d}"
+            if candidate not in index:
+                fallback_slug = candidate
+                break
+
+    if not GEMINI_API_KEY:
+        return fallback_slug
+
+    prompt = f"""
+    You are an intelligent media metadata analyzer.
+    An admin uploaded a video with:
+    Filename: "{file_name}"
+    Caption: "{caption}"
+    
+    Existing slugs in the database: {existing_slugs}
+    
+    Your task is to suggest the best slug name for this new upload.
+    Rules:
+    1. Look for the actress name in the filename or caption. Convert it to clean snake_case (e.g. "Sunny Leone" -> "sunny_leone").
+    2. Check the existing slugs. If we already have 'sunny_leone_01' and 'sunny_leone_02', and this upload is for the same actress, suggest 'sunny_leone_03'.
+    3. Look at the existing slugs. If there is an existing slug for the actress that is incomplete (e.g., has the trailer but is missing the storage file, or vice-versa), suggest THAT EXACT existing slug so they link up.
+    4. If the filename or caption is generic (e.g., 'clip', 'whatsapp_video.mp4', 'received_file.mp4') and does not name the actress, look at the existing database list. If there is a matching actress name or a close context match, suggest that. Otherwise, output '{fallback_slug}'.
+    5. Output ONLY the raw slug name (e.g., 'sunny_leone_01'). Do not include any explanations, formatting, markdown, or spaces.
+    """
+    try:
+        resp_text = await asyncio.to_thread(
+            gemini_router.generate,
+            task_type="creative",
+            prompt=prompt,
+            module_name="sales_bot"
+        )
+        if resp_text:
+            cleaned = resp_text.strip().lower()
+            # Clean up potential markdown formatting or prefixing
+            cleaned = re.sub(r'[^a-z0-9_]', '', cleaned)
+            if cleaned:
+                log.info(f"AI suggested slug: '{cleaned}' (fallback was '{fallback_slug}')")
+                return cleaned
+    except Exception as e:
+        log.warning(f"Gemini failed to suggest slug: {e}")
+        
+    return fallback_slug
+
 
 
 async def generate_bargain_response(
