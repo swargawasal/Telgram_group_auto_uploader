@@ -1,0 +1,8 @@
+.env
+__pycache__/
+logs/
+temp_receipts/
+watch_inbox/
+watch_done/
+*.mp4
+*.log
