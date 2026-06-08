@@ -71,11 +71,13 @@ def load_index() -> Dict[str, Any]:
 
 
 def save_index(index_data: Dict[str, Any]):
-    """Saves the video database to disk, sorted by slug name."""
+    """Saves the video database to disk, sorted by slug name and backs up to Telegram."""
     try:
         sorted_index = {k: index_data[k] for k in sorted(index_data.keys())}
         with open(INDEX_FILE, "w", encoding="utf-8") as f:
             json.dump(sorted_index, f, indent=2, ensure_ascii=False)
+        # Backup immediately to Telegram so that stateless runners (like GitHub Actions) don't lose data on restart
+        backup_database_to_telegram()
     except Exception as e:
         log.error(f"Error saving index file: {e}")
 
@@ -232,11 +234,13 @@ def load_history() -> list:
         return []
 
 def save_history(history: list):
-    """Saves the purchase history to disk, sorted by timestamp."""
+    """Saves the purchase history to disk, sorted by timestamp and backs up to Telegram."""
     try:
         sorted_history = sorted(history, key=lambda x: x.get("timestamp", 0))
         with open(HISTORY_FILE, "w", encoding="utf-8") as f:
             json.dump(sorted_history, f, indent=2, ensure_ascii=False)
+        # Backup immediately to Telegram so that stateless runners (like GitHub Actions) don't lose data on restart
+        backup_database_to_telegram()
     except Exception as e:
         log.error(f"Error saving history file: {e}")
 
