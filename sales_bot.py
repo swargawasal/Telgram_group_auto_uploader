@@ -831,32 +831,31 @@ async def admin_callback_handler(update: Update, context: ContextTypes.DEFAULT_T
         video_exists = slug in index_data and index_data[slug].get(tier) is not None
         
         if video_exists:
-            # Deliver video via Admin Bot (videos live in Admin Bot's storage group)
-            success = forward_video_to_buyer(slug, tier, buyer_id)
-            if success:
-                update_submission_status(buyer_id, slug, tier, "approved")
-                
-                # Notify buyer via CUSTOMER bot
+            # 1. Notify buyer of payment confirmation first
+            update_submission_status(buyer_id, slug, tier, "approved")
+            try:
+                await customer_bot.send_message(
+                    chat_id=buyer_id,
+                    text="🎉 <b>Payment Confirmed!</b>\n"
+                         "Here is your purchased video file below. Enjoy!",
+                    parse_mode="HTML"
+                )
+            except Exception as e:
+                log.error(f"Could not notify buyer via Customer Bot: {e}")
+                # Fallback to Admin Bot
                 try:
-                    await customer_bot.send_message(
+                    await context.bot.send_message(
                         chat_id=buyer_id,
                         text="🎉 <b>Payment Confirmed!</b>\n"
                              "Here is your purchased video file below. Enjoy!",
                         parse_mode="HTML"
                     )
-                except Exception as e:
-                    log.error(f"Could not notify buyer via Customer Bot: {e}")
-                    # Fallback to Admin Bot
-                    try:
-                        await context.bot.send_message(
-                            chat_id=buyer_id,
-                            text="🎉 <b>Payment Confirmed!</b>\n"
-                                 "Here is your purchased video file below. Enjoy!",
-                            parse_mode="HTML"
-                        )
-                    except Exception as e2:
-                        log.error(f"Could not notify buyer via Admin Bot fallback: {e2}")
-                    
+                except Exception as e2:
+                    log.error(f"Could not notify buyer via Admin Bot fallback: {e2}")
+
+            # 2. Deliver the video file second (so it appears below the confirmation text)
+            success = forward_video_to_buyer(slug, tier, buyer_id)
+            if success:
                 # Update admin message via ADMIN bot
                 new_caption = f"{original_caption}\n\n✅ <b>APPROVED & DELIVERED</b> by @{admin_user}"
                 if not admin_edit_caption(STORAGE_GROUP_ID, query.message.message_id, new_caption):
